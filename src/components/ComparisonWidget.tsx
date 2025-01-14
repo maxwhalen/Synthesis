@@ -451,27 +451,29 @@ export const ComparisonWidget: React.FC = () => {
   return (
     <div className="comparison-widget">
       <div className="mode-controls">
-        <button 
-          className={`mode-button ${interactionMode === 'none' ? 'active' : ''}`}
-          onClick={() => setInteractionMode('none')}
-        >
-          None
-        </button>
-        <button 
-          className={`mode-button ${interactionMode === 'addRemove' ? 'active' : ''}`}
-          onClick={() => setInteractionMode('addRemove')}
-        >
-          Add/Remove
-        </button>
-        <button 
-          className={`mode-button ${interactionMode === 'drawCompare' ? 'active' : ''}`}
-          onClick={() => {
-            setInteractionMode('drawCompare')
-            clearLines()
-          }}
-        >
-          Compare
-        </button>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <button 
+            className={`mode-button ${interactionMode === 'none' ? 'active' : ''}`}
+            onClick={() => setInteractionMode('none')}
+          >
+            None
+          </button>
+          <button 
+            className={`mode-button ${interactionMode === 'addRemove' ? 'active' : ''}`}
+            onClick={() => setInteractionMode('addRemove')}
+          >
+            Add/Remove
+          </button>
+          <button 
+            className={`mode-button ${interactionMode === 'drawCompare' ? 'active' : ''}`}
+            onClick={() => {
+              setInteractionMode('drawCompare')
+              clearLines()
+            }}
+          >
+            Compare
+          </button>
+        </div>
       </div>
 
       <div 
@@ -705,35 +707,37 @@ export const ComparisonWidget: React.FC = () => {
       </div>
       
       <div className="control-panel">
-        <button 
-          className={`mode-button ${showOperator ? 'active' : ''}`}
-          onClick={() => setShowOperator(!showOperator)}
-          disabled={showComparison}
-        >
-          Show Operator
-        </button>
-        <button 
-          className={`mode-button ${showAnswerLines ? 'active' : ''}`}
-          onClick={() => setShowAnswerLines(!showAnswerLines)}
-          disabled={showComparison}
-        >
-          Show Answer
-        </button>
-        <button
-          className="mode-button"
-          onClick={clearLines}
-          disabled={studentLines.length === 0}
-        >
-          Clear Lines
-        </button>
-        {studentLines.length === 2 && !showComparison && (
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <button 
+            className={`mode-button ${showOperator ? 'active' : ''}`}
+            onClick={() => setShowOperator(!showOperator)}
+            disabled={showComparison}
+          >
+            Show Operator
+          </button>
+          <button 
+            className={`mode-button ${showAnswerLines ? 'active' : ''}`}
+            onClick={() => setShowAnswerLines(!showAnswerLines)}
+            disabled={showComparison}
+          >
+            Show Answer
+          </button>
           <button
             className="mode-button"
-            onClick={animateComparison}
+            onClick={clearLines}
+            disabled={studentLines.length === 0}
           >
-            Show Comparison
+            Clear Lines
           </button>
-        )}
+          {studentLines.length === 2 && !showComparison && (
+            <button
+              className="mode-button"
+              onClick={animateComparison}
+            >
+              Show Comparison
+            </button>
+          )}
+        </div>
       </div>
     </div>
   )

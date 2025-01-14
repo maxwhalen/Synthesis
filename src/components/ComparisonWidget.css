@@ -12,11 +12,16 @@
   position: relative;
 }
 
-.mode-controls {
+.mode-controls, .control-panel {
   padding: 12px;
   display: flex;
-  gap: 8px;
+  justify-content: center;
   width: 100%;
+}
+
+.mode-controls > div, .control-panel > div {
+  display: flex;
+  gap: 8px;
   justify-content: center;
 }
 
@@ -162,14 +167,6 @@
   background: transparent;
 }
 
-.control-panel {
-  padding: 12px;
-  display: flex;
-  gap: 8px;
-  width: 100%;
-  justify-content: center;
-}
-
 .comparison-lines {
   position: absolute;
   top: 0;
@@ -224,6 +221,8 @@
   cursor: pointer;
   font-size: 14px;
   transition: all 0.2s;
+  white-space: nowrap;
+  width: max-content;
 }
 
 .mode-button:hover {
