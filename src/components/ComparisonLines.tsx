@@ -4,7 +4,6 @@ import { WidgetState } from '../types/types'
 
 interface ComparisonLinesProps {
   widgetState: WidgetState
-  setWidgetState: React.Dispatch<React.SetStateAction<WidgetState>>
 }
 
 interface Point {
@@ -20,8 +19,7 @@ interface Line {
 }
 
 export const ComparisonLines: React.FC<ComparisonLinesProps> = ({
-  widgetState,
-  setWidgetState
+  widgetState
 }) => {
   const containerRef = useRef<HTMLDivElement>(null)
   const [drawingLine, setDrawingLine] = useState<{

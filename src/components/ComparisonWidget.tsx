@@ -33,11 +33,9 @@ export const ComparisonWidget: React.FC = () => {
   const [studentLines, setStudentLines] = useState<Line[]>([])
   const [currentLine, setCurrentLine] = useState<Line | null>(null)
   const [showComparison, setShowComparison] = useState(false)
-  const [showResult, setShowResult] = useState<boolean | null>(null)
   const [interactionMode, setInteractionMode] = useState<InteractionMode>('none')
   const [isDrawing, setIsDrawing] = useState(false)
   const [startBlock, setStartBlock] = useState<StartBlock | null>(null)
-  const [isAnimating, setIsAnimating] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
   const [leftEditing, setLeftEditing] = useState(false)
   const [rightEditing, setRightEditing] = useState(false)
@@ -54,14 +52,12 @@ export const ComparisonWidget: React.FC = () => {
     setShowOperator(false)
     setShowAnswerLines(false)
     setShowComparison(false)
-    setShowResult(null)
     setStudentLines([])
   }, [])
 
   // CSS constants from ComparisonWidget.css
   const BLOCK_WIDTH = 70 // .block { width: 70px }
   const BLOCK_HEIGHT = 40 // .block { height: 40px }
-  const BLOCK_MARGIN = 4 // .block { margin: 4px 0 }
   const LEFT_STACK_POSITION = 0.35 // .block-stack.left { left: 35% }
   const RIGHT_STACK_POSITION = 0.65 // .block-stack.right { left: 65% }
   const LINE_EXTENSION = 20 // How far the line extends horizontally
@@ -175,7 +171,7 @@ export const ComparisonWidget: React.FC = () => {
     }
   }
 
-  const handleMouseUp = (e: React.MouseEvent, stack?: 'left' | 'right', index?: number) => {
+  const handleMouseUp = (_e: React.MouseEvent, stack?: 'left' | 'right', index?: number) => {
     if (!isDrawing || !currentLine || !startBlock || !containerRef.current) {
       console.log('Invalid mouse up state:', { isDrawing, currentLine, startBlock })
       setIsDrawing(false)
@@ -258,9 +254,7 @@ export const ComparisonWidget: React.FC = () => {
   const clearLines = () => {
     setStudentLines([])
     setShowComparison(false)
-    setShowResult(null)
     setShowAnswerLines(false)
-    setIsAnimating(false)
     setShowOperator(false)
     setCurrentLine(null)
     setIsDrawing(false)
@@ -271,7 +265,6 @@ export const ComparisonWidget: React.FC = () => {
   const animateComparison = () => {
     if (studentLines.length !== 2) return;
     
-    setIsAnimating(true);
     setShowOperator(false);
     setIsShapeComplete(false);
     
@@ -284,7 +277,7 @@ export const ComparisonWidget: React.FC = () => {
     if (!rect) return;
 
     // Sort student lines by type
-    const sortedLines = [...studentLines].sort((a, b) => 
+    const sortedLines = [...studentLines].sort((a, _b) => 
       a.type === 'top' ? -1 : 1
     );
 
@@ -304,9 +297,6 @@ export const ComparisonWidget: React.FC = () => {
     // Determine the relationship between stacks
     const relationship = leftCount === rightCount ? 'equal' : leftCount > rightCount ? 'greater' : 'less';
 
-    // Calculate the direction of the original lines
-    const isLeftToRight = topLine.start.x < topLine.end.x;
-    
     // Extend the lines slightly in their current direction
     const extendLines = (line: Line) => {
       const extension = 15; // How much to extend the lines
@@ -336,7 +326,6 @@ export const ComparisonWidget: React.FC = () => {
     // Update lines with new positions based on relationship
     setStudentLines(sortedLines.map(line => {
       const isTop = line.type === 'top';
-      const originalLine = { ...line };
       const extendedLine = extendLines(line);
       
       if (relationship === 'equal') {
@@ -660,8 +649,6 @@ export const ComparisonWidget: React.FC = () => {
             <>
               {(() => {
                 const rect = containerRef.current.getBoundingClientRect();
-                const spacing = calculateBlockSpacing(rect);
-                const blockTotalHeight = BLOCK_HEIGHT + spacing.spacing;
                 
                 // Calculate the same connection points we use for drawing lines
                 const leftTop = getConnectionPoint('left', 'top', rect);
