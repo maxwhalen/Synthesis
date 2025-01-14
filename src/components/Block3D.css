@@ -1,17 +1,21 @@
 .block3d-container {
   perspective: 800px;
-  width: 45px;
+  width: 40px;
   height: 40px;
   position: relative;
   margin: 0;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   transform-origin: center center;
   will-change: transform;
+  animation: float3d 5s ease-in-out infinite;
 }
 
-@keyframes float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-5px); }
+@keyframes float3d {
+  0% { transform: translateY(0) scale(1) rotateX(-15deg) rotateY(15deg); }
+  25% { transform: translateY(-1.5px) scale(1.005) rotateX(-14.5deg) rotateY(15.3deg); }
+  50% { transform: translateY(-3px) scale(1.01) rotateX(-15.5deg) rotateY(14.7deg); }
+  75% { transform: translateY(-1.5px) scale(1.005) rotateX(-15deg) rotateY(15.2deg); }
+  100% { transform: translateY(0) scale(1) rotateX(-15deg) rotateY(15deg); }
 }
 
 .block3d-container:hover {

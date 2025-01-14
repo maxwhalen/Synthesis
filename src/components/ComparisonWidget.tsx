@@ -45,6 +45,19 @@ export const ComparisonWidget: React.FC = () => {
   const [rightTempValue, setRightTempValue] = useState(rightCount.toString())
   const [isShapeComplete, setIsShapeComplete] = useState(false)
 
+  // Initialize blocks and state on component mount
+  useEffect(() => {
+    // Set initial state
+    setLeftCount(2)
+    setRightCount(4)
+    setInteractionMode('none')
+    setShowOperator(false)
+    setShowAnswerLines(false)
+    setShowComparison(false)
+    setShowResult(null)
+    setStudentLines([])
+  }, [])
+
   // CSS constants from ComparisonWidget.css
   const BLOCK_WIDTH = 70 // .block { width: 70px }
   const BLOCK_HEIGHT = 40 // .block { height: 40px }

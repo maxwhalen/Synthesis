@@ -9,6 +9,28 @@
   --number-font: "Orbitron", "Rajdhani", "Audiowide", "Chakra Petch", var(--button-font);
 }
 
+@keyframes gradientShift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes float {
+  0% { transform: translateY(0) rotate(0deg); }
+  25% { transform: translateY(-1.5px) rotate(0.3deg); }
+  50% { transform: translateY(-3px) rotate(-0.3deg); }
+  75% { transform: translateY(-1.5px) rotate(0.1deg); }
+  100% { transform: translateY(0) rotate(0deg); }
+}
+
+@keyframes geometryFloat {
+  0% { transform: translate(0, 0); }
+  25% { transform: translate(2px, 2px); }
+  50% { transform: translate(0, 4px); }
+  75% { transform: translate(-2px, 2px); }
+  100% { transform: translate(0, 0); }
+}
+
 .comparison-widget {
   display: flex;
   flex-direction: column;
@@ -17,10 +39,31 @@
   height: 100vh;
   max-height: 600px;
   position: relative;
-  background: linear-gradient(180deg, var(--deep-blue) 0%, #1A2B4D 100%);
+  background: linear-gradient(-45deg, var(--deep-blue) 0%, #1A2B4D 25%, #243B6B 50%, #1A2B4D 75%, var(--deep-blue) 100%);
+  background-size: 400% 400%;
+  animation: gradientShift 15s ease infinite;
   border-radius: 16px;
   padding: 20px;
   box-shadow: 0 0 40px rgba(0, 243, 255, 0.1);
+  overflow: hidden;
+}
+
+.comparison-widget::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: 
+    radial-gradient(circle at 20% 20%, rgba(0, 243, 255, 0.03) 0%, transparent 50%),
+    radial-gradient(circle at 80% 80%, rgba(0, 243, 255, 0.03) 0%, transparent 50%),
+    linear-gradient(45deg, transparent 48%, rgba(0, 243, 255, 0.02) 49%, rgba(0, 243, 255, 0.02) 51%, transparent 52%),
+    linear-gradient(-45deg, transparent 48%, rgba(0, 243, 255, 0.02) 49%, rgba(0, 243, 255, 0.02) 51%, transparent 52%);
+  background-size: 100% 100%, 100% 100%, 60px 60px, 60px 60px;
+  animation: geometryFloat 8s ease-in-out infinite;
+  pointer-events: none;
+  opacity: 0.6;
 }
 
 .mode-controls, .control-panel {
@@ -84,17 +127,54 @@
 }
 
 .block {
-  width: 70px;
+  width: 60px;
   height: 40px;
   background: linear-gradient(135deg, var(--block-color) 0%, var(--block-glow) 100%);
   border-radius: 8px;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
   margin: 4px 0;
   position: relative;
   box-shadow: 0 0 15px rgba(76, 196, 241, 0.3);
-  animation: float 3s ease-in-out infinite;
+  animation: float 5s ease-in-out infinite;
   backdrop-filter: blur(5px);
   border: 1px solid rgba(255, 255, 255, 0.1);
+  will-change: transform, opacity;
+  opacity: 1;
+}
+
+@keyframes kickOut {
+  0% { 
+    transform: scale(1) translateX(0) rotate(0deg);
+    opacity: 1;
+  }
+  30% {
+    transform: scale(1.1) translateX(-5px) rotate(-2deg);
+    opacity: 1;
+  }
+  100% { 
+    transform: scale(0.8) translateX(200px) rotate(15deg);
+    opacity: 0;
+  }
+}
+
+.block-enter {
+  opacity: 0;
+  transform: scale(0.9) translateY(-15px);
+}
+
+.block-enter-active {
+  opacity: 1;
+  transform: scale(1) translateY(0);
+  transition: all 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.block-exit {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.block-exit-active {
+  animation: kickOut 0.8s cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
 }
 
 .block:hover {
@@ -103,8 +183,11 @@
 }
 
 @keyframes float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-5px); }
+  0% { transform: translateY(0) rotate(0deg); }
+  25% { transform: translateY(-1.5px) rotate(0.3deg); }
+  50% { transform: translateY(-3px) rotate(-0.3deg); }
+  75% { transform: translateY(-1.5px) rotate(0.1deg); }
+  100% { transform: translateY(0) rotate(0deg); }
 }
 
 .stack-controls {

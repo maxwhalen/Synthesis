@@ -1,0 +1,63 @@
+/* Import JetBrains Mono font */
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&display=swap');
+
+/* Reset */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+:root {
+  --font-family: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Monaco, 'Cascadia Mono', 'Segoe UI Mono',
+    'Roboto Mono', monospace;
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --font-weight-extrabold: 800;
+}
+
+/* Base styles */
+html, body {
+  font-family: var(--font-family);
+  font-weight: var(--font-weight-normal);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* Force font family on all elements */
+* {
+  font-family: var(--font-family) !important;
+}
+
+/* Enable font features */
+body {
+  font-feature-settings: "liga" 1, "calt" 1, "ss01" 1, "ss02" 1, "ss03" 1, "zero" 1;
+}
+
+/* Make numbers bold and monospaced */
+.number, 
+[class*="number"],
+[class*="Number"],
+[class*="value"],
+[class*="Value"] {
+  font-weight: var(--font-weight-extrabold);
+  font-feature-settings: "tnum" 1;
+  letter-spacing: -0.02em;
+  font-size: 2em;
+  transform: translateY(-0.1em);
+}
+
+/* Target numeric content */
+:is(p, span, div):not(pre *) {
+  font-feature-settings: "tnum" 1;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Code blocks and pre elements */
+pre, code {
+  font-family: var(--font-family) !important;
+  font-feature-settings: "liga" 0;
+} 
