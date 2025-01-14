@@ -54,26 +54,42 @@ export const ComparisonWidget: React.FC = () => {
   const LINE_EXTENSION = 20 // How far the line extends horizontally
 
   // Calculate dynamic spacing based on container height and larger stack
-  const calculateBlockSpacing = (rect: DOMRect): number => {
+  const calculateBlockSpacing = (rect: DOMRect): { spacing: number; scale: number } => {
     const maxStackSize = Math.max(leftCount, rightCount)
-    const availableHeight = rect.height - 40 // Subtract padding
-    const minSpacing = 4 // Minimum spacing between blocks
-    const maxSpacing = 20 // Maximum spacing between blocks
+    const totalPadding = 80 // Reduced padding
+    const minSpacing = 2 // Reduced minimum spacing
+    const maxSpacing = 12 // Reduced maximum spacing
     
-    // Calculate optimal spacing
-    const optimalSpacing = (availableHeight - (maxStackSize * BLOCK_HEIGHT)) / (maxStackSize - 1)
+    // Calculate total height needed for blocks
+    const totalBlockHeight = maxStackSize * BLOCK_HEIGHT
+    const availableHeight = rect.height - totalPadding
     
-    // Clamp spacing between min and max
-    return Math.max(minSpacing, Math.min(maxSpacing, optimalSpacing))
+    // Calculate scale if blocks would overflow, with a more gradual scale reduction
+    let scale = 1
+    const minHeightNeeded = totalBlockHeight + (maxStackSize - 1) * minSpacing
+    if (minHeightNeeded > availableHeight) {
+      // More aggressive scale reduction with a minimum scale of 0.6
+      scale = Math.max(0.6, availableHeight / minHeightNeeded)
+    }
+    
+    // Calculate optimal spacing with a preference for consistent spacing
+    const optimalSpacing = scale === 1 
+      ? Math.min(maxSpacing, (availableHeight - totalBlockHeight) / (maxStackSize + 1))
+      : minSpacing // Use minimum spacing when scaled
+    
+    return {
+      spacing: Math.max(minSpacing, Math.min(maxSpacing, optimalSpacing)),
+      scale
+    }
   }
 
   // Helper function to get connection points for a block
   const getConnectionPoint = (stack: 'left' | 'right', type: 'top' | 'bottom', rect: DOMRect): Point => {
     const spacing = calculateBlockSpacing(rect)
-    const blockTotalHeight = BLOCK_HEIGHT + spacing
+    const blockTotalHeight = BLOCK_HEIGHT + spacing.spacing
     
     // Calculate stack positions using the dynamic spacing
-    const stackHeight = (stack === 'left' ? leftCount : rightCount) * blockTotalHeight - spacing // Subtract one spacing since we need n-1 spaces for n blocks
+    const stackHeight = (stack === 'left' ? leftCount : rightCount) * blockTotalHeight - spacing.spacing // Subtract one spacing since we need n-1 spaces for n blocks
     const stackTop = rect.height / 2 - stackHeight / 2
     const stackBottom = stackTop + stackHeight
     
@@ -406,12 +422,25 @@ export const ComparisonWidget: React.FC = () => {
     }
   }
 
-  // Update the block rendering to include dynamic spacing
+  // Update the block rendering to include dynamic spacing and scaling
   const renderBlock = (stack: 'left' | 'right', index: number) => {
+    if (!containerRef.current) return null
+    
+    const rect = containerRef.current.getBoundingClientRect()
+    const { spacing, scale } = calculateBlockSpacing(rect)
+    const stackSize = stack === 'left' ? leftCount : rightCount
+    const stackHeight = stackSize * BLOCK_HEIGHT + (stackSize - 1) * spacing
+    const verticalOffset = (rect.height - stackHeight * scale) / 2
+    
     return (
       <Block3D
         key={`${stack}-${index}`}
         className={`block ${interactionMode === 'drawCompare' ? 'interactive' : ''}`}
+        style={{
+          transform: `scale(${scale})`,
+          marginTop: index === 0 ? verticalOffset / scale : spacing,
+          marginBottom: index === stackSize - 1 ? verticalOffset / scale : 0
+        }}
         onClick={(e: React.MouseEvent<HTMLDivElement>) => {
           if (isDrawing) {
             handleMouseUp(e as unknown as React.MouseEvent, stack, index)
@@ -625,7 +654,7 @@ export const ComparisonWidget: React.FC = () => {
               {(() => {
                 const rect = containerRef.current.getBoundingClientRect();
                 const spacing = calculateBlockSpacing(rect);
-                const blockTotalHeight = BLOCK_HEIGHT + spacing;
+                const blockTotalHeight = BLOCK_HEIGHT + spacing.spacing;
                 
                 // Calculate the same connection points we use for drawing lines
                 const leftTop = getConnectionPoint('left', 'top', rect);

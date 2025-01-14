@@ -3,9 +3,10 @@
   width: 45px;
   height: 40px;
   position: relative;
-  margin: 4px 0;
+  margin: 0;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  animation: float 3s ease-in-out infinite;
+  transform-origin: center center;
+  will-change: transform;
 }
 
 @keyframes float {
@@ -14,7 +15,7 @@
 }
 
 .block3d-container:hover {
-  transform: translateY(-2px);
+  transform: translateY(-2px) scale(var(--hover-scale, 1));
 }
 
 .block3d {
@@ -38,6 +39,7 @@
   background: var(--block-color);
   box-shadow: 0 0 15px rgba(76, 196, 241, 0.3);
   backdrop-filter: blur(5px);
+  transform-origin: center center;
 }
 
 .face--front {
@@ -51,6 +53,7 @@
   transform: rotateY(180deg) translateZ(25px);
   background: linear-gradient(135deg, var(--block-glow) 0%, color-mix(in srgb, var(--block-color) 70%, black) 100%);
   border: 1px solid color-mix(in srgb, var(--block-color) 70%, black);
+  box-shadow: 0 0 3px rgba(0, 0, 0, 0.3);
   border-radius: 4px;
 }
 
