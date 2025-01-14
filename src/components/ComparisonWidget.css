@@ -1,0 +1,403 @@
+.comparison-widget {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  height: 100vh;
+  max-height: 600px;
+  position: relative;
+}
+
+.mode-controls {
+  padding: 12px;
+  display: flex;
+  gap: 8px;
+  width: 100%;
+  justify-content: center;
+}
+
+.stacks-container {
+  position: relative;
+  width: 100%;
+  flex: 1;
+  margin: 20px 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.block-stack {
+  position: absolute;
+  height: 100%;
+  width: 100px;
+  display: flex;
+  align-items: center;
+  padding: 20px 0;
+}
+
+.blocks-area {
+  position: relative;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+
+.blocks-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 10px 0;
+}
+
+.block-stack.left {
+  left: 35%;
+  transform: translateX(-50%);
+}
+
+.block-stack.right {
+  left: 65%;
+  transform: translateX(-50%);
+}
+
+.block {
+  width: 70px;
+  height: 40px;
+  background-color: #4a90e2;
+  border-radius: 4px;
+  transition: all 0.3s ease;
+  margin: 4px 0;
+}
+
+.stack-controls {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.stacks-container.addRemove .stack-controls {
+  display: flex;
+}
+
+.block-stack.left .stack-controls {
+  right: calc(100% + 16px);
+}
+
+.block-stack.right .stack-controls {
+  left: calc(100% + 16px);
+}
+
+.stack-button {
+  display: none;
+  padding: 8px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-family: Arial, sans-serif;
+  font-size: 16px;
+  transition: all 0.2s;
+  width: 36px;
+  height: 36px;
+  align-items: center;
+  justify-content: center;
+  color: #666;
+}
+
+.stacks-container.addRemove .stack-button {
+  display: flex;
+}
+
+.stack-button:hover {
+  background: rgba(0, 0, 0, 0.05);
+  color: #333;
+}
+
+.stack-button:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.stack-value {
+  width: 24px;
+  height: 36px;
+  line-height: 36px;
+  text-align: center;
+  font-family: Arial, sans-serif;
+  font-size: 16px;
+  font-weight: normal;
+  user-select: none;
+  border: none;
+  background: transparent;
+  color: #333;
+  cursor: pointer;
+}
+
+.stack-value input {
+  width: 24px;
+  height: 36px;
+  text-align: center;
+  font-family: Arial, sans-serif;
+  font-size: 16px;
+  border: none;
+  background: transparent;
+  color: #333;
+  padding: 0;
+  margin: 0;
+  outline: none;
+  cursor: text;
+}
+
+.stack-value input:focus {
+  background: transparent;
+}
+
+.control-panel {
+  padding: 12px;
+  display: flex;
+  gap: 8px;
+  width: 100%;
+  justify-content: center;
+}
+
+.comparison-lines {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  overflow: visible;
+  z-index: 10;
+}
+
+.student-line {
+  stroke: #666;
+  stroke-width: 2;
+  pointer-events: none;
+  fill: none;
+  opacity: 1;
+}
+
+.correct-line {
+  stroke: #4caf50;
+  opacity: 1;
+}
+
+.incorrect-line {
+  stroke: #f44336;
+  opacity: 1;
+}
+
+.answer-line {
+  stroke: #4caf50;
+  stroke-width: 2;
+  stroke-dasharray: 4;
+  pointer-events: none;
+  fill: none;
+  opacity: 1;
+}
+
+.mode-button {
+  padding: 8px 16px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background: white;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s;
+}
+
+.mode-button:hover {
+  background: #f0f0f0;
+}
+
+.mode-button.active {
+  background: #007bff;
+  color: white;
+  border-color: #0056b3;
+}
+
+.stacks-container.drawCompare {
+  cursor: default;
+}
+
+.comparison-lines {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.student-line {
+  stroke: #666;
+  stroke-width: 2;
+  pointer-events: none;
+}
+
+/* Add styles for the connection zones */
+.connection-zone {
+  position: absolute;
+  width: 70px;
+  height: 45px;
+  background: rgba(74, 144, 226, 0.1);
+  cursor: pointer;
+  transform: translateX(-50%);
+  left: 50%;
+  z-index: 10;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.stacks-container.drawCompare .connection-zone {
+  display: block;
+}
+
+.connection-zone.top {
+  top: -20px;
+}
+
+.connection-zone.bottom {
+  bottom: -20px;
+}
+
+.connection-zone:hover {
+  background: rgba(74, 144, 226, 0.1);
+}
+
+/* Style for zones that are already connected */
+.connection-zone.connected {
+  cursor: not-allowed;
+}
+
+/* Style for the current drawing line */
+.drawing-line {
+  stroke: #000000;
+  stroke-width: 2;
+  pointer-events: none;
+  fill: none;
+  opacity: 1;
+  transition: all 300ms ease-in;
+}
+
+.drawing-line.discarding {
+  animation: fallAndFade 300ms ease-in forwards;
+}
+
+/* Add hover state for blocks in compare mode */
+.stacks-container.drawCompare .block {
+  cursor: pointer;
+}
+
+.stacks-container.drawCompare .block:hover {
+  background-color: #357abd;
+}
+
+.blocks-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 0;
+}
+
+/* Add hover and active states for blocks in compare mode */
+.stacks-container.drawCompare .block {
+  cursor: pointer;
+}
+
+.stacks-container.drawCompare .block:hover {
+  background-color: #357abd;
+  transform: scale(1.05);
+}
+
+.stacks-container.drawCompare .block:active {
+  background-color: #2868b0;
+  transform: scale(0.95);
+}
+
+/* Style the drawing line */
+.drawing-line {
+  stroke: #000000;
+  stroke-width: 2;
+  pointer-events: none;
+  fill: none;
+  opacity: 1;
+}
+
+/* Style completed lines */
+.student-line {
+  stroke: #000000;
+  stroke-width: 2;
+  pointer-events: none;
+  fill: none;
+  opacity: 1;
+  transition: stroke 0.3s ease;
+}
+
+.correct-line {
+  stroke: #4caf50;
+  opacity: 1;
+}
+
+.incorrect-line {
+  stroke: #f44336;
+  opacity: 1;
+}
+
+.answer-line {
+  stroke: #4caf50;
+  stroke-width: 2;
+  stroke-dasharray: 4;
+  pointer-events: none;
+  fill: none;
+  opacity: 1;
+}
+
+@keyframes fallAndFade {
+  0% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(100px);
+    opacity: 0;
+  }
+}
+
+.drawing-line.discarding {
+  animation: fallAndFade 300ms ease-in forwards;
+}
+
+.shadow-line {
+  stroke-width: 2;
+  pointer-events: none;
+  fill: none;
+  opacity: 1;
+  /* Offset the shadow line slightly to make it more visible */
+  transform: translateY(-0.5px);
+}
+
+.drawing-line.shadow-line {
+  stroke: #000000;
+}
+
+.student-line.shadow-line {
+  stroke: #666;
+}
+
+.student-line.shadow-line.correct-line {
+  stroke: #4caf50;
+}
+
+.student-line.shadow-line.incorrect-line {
+  stroke: #f44336;
+} 
