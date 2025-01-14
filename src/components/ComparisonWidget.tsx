@@ -14,6 +14,8 @@ interface Line {
   isCorrect?: boolean
   isDiscarding?: boolean
   type: 'top' | 'bottom'
+  originalStart?: Point
+  originalEnd?: Point
 }
 
 interface StartBlock {
@@ -34,11 +36,13 @@ export const ComparisonWidget: React.FC = () => {
   const [interactionMode, setInteractionMode] = useState<InteractionMode>('none')
   const [isDrawing, setIsDrawing] = useState(false)
   const [startBlock, setStartBlock] = useState<StartBlock | null>(null)
+  const [isAnimating, setIsAnimating] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
   const [leftEditing, setLeftEditing] = useState(false)
   const [rightEditing, setRightEditing] = useState(false)
   const [leftTempValue, setLeftTempValue] = useState(leftCount.toString())
   const [rightTempValue, setRightTempValue] = useState(rightCount.toString())
+  const [isShapeComplete, setIsShapeComplete] = useState(false)
 
   // CSS constants from ComparisonWidget.css
   const BLOCK_WIDTH = 70 // .block { width: 70px }
@@ -131,10 +135,12 @@ export const ComparisonWidget: React.FC = () => {
     if (!isDrawing || !currentLine || !containerRef.current) return
 
     const rect = containerRef.current.getBoundingClientRect()
-    setCurrentLine(prev => prev ? {
-      ...prev,
-      end: { x: e.clientX - rect.left, y: e.clientY - rect.top }
-    } : null)
+    const newEnd = { x: e.clientX - rect.left, y: e.clientY - rect.top }
+    
+    // Only update if the position has changed significantly
+    if (Math.abs(newEnd.x - currentLine.end.x) > 1 || Math.abs(newEnd.y - currentLine.end.y) > 1) {
+      setCurrentLine(prev => prev ? { ...prev, end: newEnd } : null)
+    }
   }
 
   const handleMouseUp = (e: React.MouseEvent, stack?: 'left' | 'right', index?: number) => {
@@ -195,13 +201,13 @@ export const ComparisonWidget: React.FC = () => {
     }
     console.log('Creating final line:', newLine)
 
-    setStudentLines(prev => {
-      console.log('Current student lines:', prev)
-      return [...prev, newLine]
+    // Update all states in a single batch
+    requestAnimationFrame(() => {
+      setStudentLines(prev => [...prev, newLine])
+      setCurrentLine(null)
+      setIsDrawing(false)
+      setStartBlock(null)
     })
-    setCurrentLine(null)
-    setIsDrawing(false)
-    setStartBlock(null)
   }
 
   const clearLines = () => {
@@ -209,93 +215,149 @@ export const ComparisonWidget: React.FC = () => {
     setShowComparison(false)
     setShowResult(null)
     setShowAnswerLines(false)
+    setIsAnimating(false)
+    setShowOperator(false)
+    setCurrentLine(null)
+    setIsDrawing(false)
+    setStartBlock(null)
+    setIsShapeComplete(false)
   }
 
-  const compareLines = () => {
-    if (studentLines.length !== 2) return
+  const animateComparison = () => {
+    if (studentLines.length !== 2) return;
+    
+    setIsAnimating(true);
+    setShowOperator(false);
+    setIsShapeComplete(false);
+    
+    // Start glow effect after shape animation completes
+    setTimeout(() => {
+      setIsShapeComplete(true);
+    }, 900);
 
-    const rect = containerRef.current?.getBoundingClientRect()
-    if (!rect) return
+    const rect = containerRef.current?.getBoundingClientRect();
+    if (!rect) return;
 
-    // Sort student lines by type instead of Y position
+    // Sort student lines by type
     const sortedLines = [...studentLines].sort((a, b) => 
       a.type === 'top' ? -1 : 1
-    )
+    );
 
-    console.log('Sorted lines:', sortedLines)
+    const topLine = sortedLines.find(line => line.type === 'top');
+    const bottomLine = sortedLines.find(line => line.type === 'bottom');
 
-    const topLine = sortedLines.find(line => line.type === 'top')
-    const bottomLine = sortedLines.find(line => line.type === 'bottom')
+    if (!topLine || !bottomLine) return;
 
-    if (!topLine || !bottomLine) {
-      console.log('Missing top or bottom line')
-      return
-    }
+    // Calculate center point for the comparison
+    const centerX = rect.width * 0.5;
+    const centerY = rect.height * 0.5;
+    
+    // Fixed dimensions for the comparison shape
+    const shapeWidth = 40; // Half width of the shape from center
+    const shapeHeight = 30; // Half height of the shape from center
 
-    // Calculate vertical distance between lines at start and end
-    const startGap = Math.abs(topLine.start.y - bottomLine.start.y)
-    const endGap = Math.abs(topLine.end.y - bottomLine.end.y)
+    // Determine the relationship between stacks
+    const relationship = leftCount === rightCount ? 'equal' : leftCount > rightCount ? 'greater' : 'less';
 
-    console.log('Line gaps:', { startGap, endGap })
+    // Calculate the direction of the original lines
+    const isLeftToRight = topLine.start.x < topLine.end.x;
+    
+    // Extend the lines slightly in their current direction
+    const extendLines = (line: Line) => {
+      const extension = 15; // How much to extend the lines
+      const vector = {
+        x: line.end.x - line.start.x,
+        y: line.end.y - line.start.y
+      };
+      const length = Math.sqrt(vector.x * vector.x + vector.y * vector.y);
+      const normalizedVector = {
+        x: vector.x / length,
+        y: vector.y / length
+      };
+      
+      // Extend more on the outer ends, less on the meeting ends
+      return {
+        start: {
+          x: line.start.x - normalizedVector.x * extension,
+          y: line.start.y - normalizedVector.y * extension
+        },
+        end: {
+          x: line.end.x + normalizedVector.x * (extension * 0.5),
+          y: line.end.y + normalizedVector.y * (extension * 0.5)
+        }
+      };
+    };
 
-    // If gaps are similar (parallel lines), stacks are equal
-    if (Math.abs(startGap - endGap) < 10) {
-      setStudentLines(sortedLines.map(line => ({ ...line, isCorrect: leftCount === rightCount })))
-      setShowComparison(true)
-      setShowResult(leftCount === rightCount)
-      setShowAnswerLines(true)
-      return
-    }
-
-    // The side with the larger gap is "greater than"
-    const leftIsGreater = startGap > endGap
-    const isCorrect = leftIsGreater ? leftCount > rightCount : leftCount < rightCount
-
-    animateToCorrectPositions(sortedLines, isCorrect)
-  }
-
-  const animateToCorrectPositions = (sortedLines: Line[], isCorrect: boolean) => {
-    const rect = containerRef.current?.getBoundingClientRect()
-    if (!rect) return
-
-    const leftX = rect.width * 0.35
-    const rightX = rect.width * 0.65
-    const blockHeight = 44 // 40 + 4 margin
-    const verticalOffset = 20 // Offset for connection points
-
-    const leftTopY = rect.height / 2 - (leftCount * blockHeight) / 2
-    const leftBottomY = rect.height / 2 + (leftCount * blockHeight) / 2
-    const rightTopY = rect.height / 2 - (rightCount * blockHeight) / 2
-    const rightBottomY = rect.height / 2 + (rightCount * blockHeight) / 2
-
-    console.log('Animation positions:', {
-      leftTopY,
-      leftBottomY,
-      rightTopY,
-      rightBottomY
-    })
-
-    setStudentLines(sortedLines.map(line => ({
-      ...line,
-      isCorrect,
-      start: {
-        x: leftX,
-        y: line.type === 'top' ? leftTopY : leftBottomY
-      },
-      end: {
-        x: rightX,
-        y: line.type === 'top' ? rightTopY : rightBottomY
+    // Update lines with new positions based on relationship
+    setStudentLines(sortedLines.map(line => {
+      const isTop = line.type === 'top';
+      const originalLine = { ...line };
+      const extendedLine = extendLines(line);
+      
+      if (relationship === 'equal') {
+        // For equals, create parallel horizontal lines
+        return {
+          ...line,
+          originalStart: extendedLine.start,
+          originalEnd: extendedLine.end,
+          start: {
+            x: centerX - shapeWidth,
+            y: centerY + (isTop ? -shapeHeight : shapeHeight)
+          },
+          end: {
+            x: centerX + shapeWidth,
+            y: centerY + (isTop ? -shapeHeight : shapeHeight)
+          }
+        };
+      } else {
+        // For < or >, maintain the original direction of the lines
+        const pointingLeft = relationship === 'less';
+        
+        // When right stack is larger (pointing left), flip the anchor points
+        if (pointingLeft) {
+          return {
+            ...line,
+            originalStart: extendedLine.end,  // Flip the original points
+            originalEnd: extendedLine.start,  // Flip the original points
+            start: {
+              x: centerX + shapeWidth,
+              y: centerY + (isTop ? -shapeHeight : shapeHeight)
+            },
+            end: {
+              x: centerX - shapeWidth,
+              y: centerY
+            }
+          };
+        } else {
+          // When left stack is larger (pointing right), keep original direction
+          return {
+            ...line,
+            originalStart: extendedLine.start,
+            originalEnd: extendedLine.end,
+            start: {
+              x: centerX - shapeWidth,
+              y: centerY + (isTop ? -shapeHeight : shapeHeight)
+            },
+            end: {
+              x: centerX + shapeWidth,
+              y: centerY
+            }
+          };
+        }
       }
-    })))
+    }));
 
-    setShowComparison(true)
-    setShowResult(isCorrect)
-    setShowAnswerLines(true)
-  }
+    setShowComparison(true);
+  };
 
   const handleInputChange = (side: 'left' | 'right', value: string) => {
     const numValue = parseInt(value)
     if (!isNaN(numValue) && numValue >= 1 && numValue <= 10) {
+      // Clear lines if we're in add/remove mode
+      if (interactionMode === 'addRemove') {
+        clearLines();
+      }
+      
       if (side === 'left') {
         setLeftCount(numValue)
         setLeftTempValue(value)
@@ -309,6 +371,19 @@ export const ComparisonWidget: React.FC = () => {
       } else {
         setRightTempValue(value)
       }
+    }
+  }
+
+  // Also update the stack buttons to clear lines
+  const handleStackButtonClick = (side: 'left' | 'right', change: 1 | -1) => {
+    if (interactionMode === 'addRemove') {
+      clearLines();
+    }
+    
+    if (side === 'left') {
+      setLeftCount(prev => Math.min(Math.max(prev + change, 1), 10))
+    } else {
+      setRightCount(prev => Math.min(Math.max(prev + change, 1), 10))
     }
   }
 
@@ -413,7 +488,7 @@ export const ComparisonWidget: React.FC = () => {
           <div className="stack-controls">
             <button 
               className="stack-button"
-              onClick={() => setLeftCount(Math.min(leftCount + 1, 10))}
+              onClick={() => handleStackButtonClick('left', 1)}
               disabled={interactionMode !== 'addRemove'}
             >
               ▲
@@ -438,7 +513,7 @@ export const ComparisonWidget: React.FC = () => {
             </div>
             <button 
               className="stack-button"
-              onClick={() => setLeftCount(Math.max(leftCount - 1, 1))}
+              onClick={() => handleStackButtonClick('left', -1)}
               disabled={interactionMode !== 'addRemove'}
             >
               ▼
@@ -451,7 +526,67 @@ export const ComparisonWidget: React.FC = () => {
         
         {showOperator && (
           <div className="comparator">
-            {leftCount === rightCount ? '=' : leftCount > rightCount ? '>' : '<'}
+            <svg 
+              width="160" 
+              height="120" 
+              viewBox="0 0 160 120" 
+              style={{ 
+                position: 'absolute',
+                left: '50%',
+                top: '50%',
+                transform: 'translate(-50%, -50%)'
+              }}
+            >
+              {leftCount === rightCount ? (
+                // Equal sign - two parallel lines
+                <>
+                  <path
+                    d={`M 40 30 L 120 30`}
+                    stroke="#666"
+                    strokeWidth="8"
+                    strokeLinecap="round"
+                  />
+                  <path
+                    d={`M 40 90 L 120 90`}
+                    stroke="#666"
+                    strokeWidth="8"
+                    strokeLinecap="round"
+                  />
+                </>
+              ) : leftCount > rightCount ? (
+                // Greater than - lines meet on right
+                <>
+                  <path
+                    d={`M 40 30 L 120 60`}
+                    stroke="#666"
+                    strokeWidth="8"
+                    strokeLinecap="round"
+                  />
+                  <path
+                    d={`M 40 90 L 120 60`}
+                    stroke="#666"
+                    strokeWidth="8"
+                    strokeLinecap="round"
+                  />
+                </>
+              ) : (
+                // Less than - lines meet on left
+                <>
+                  <path
+                    d={`M 120 30 L 40 60`}
+                    stroke="#666"
+                    strokeWidth="8"
+                    strokeLinecap="round"
+                  />
+                  <path
+                    d={`M 120 90 L 40 60`}
+                    stroke="#666"
+                    strokeWidth="8"
+                    strokeLinecap="round"
+                  />
+                </>
+              )}
+            </svg>
           </div>
         )}
         
@@ -462,7 +597,7 @@ export const ComparisonWidget: React.FC = () => {
           <div className="stack-controls">
             <button 
               className="stack-button"
-              onClick={() => setRightCount(Math.min(rightCount + 1, 10))}
+              onClick={() => handleStackButtonClick('right', 1)}
               disabled={interactionMode !== 'addRemove'}
             >
               ▲
@@ -487,7 +622,7 @@ export const ComparisonWidget: React.FC = () => {
             </div>
             <button 
               className="stack-button"
-              onClick={() => setRightCount(Math.max(rightCount - 1, 1))}
+              onClick={() => handleStackButtonClick('right', -1)}
               disabled={interactionMode !== 'addRemove'}
             >
               ▼
@@ -511,78 +646,76 @@ export const ComparisonWidget: React.FC = () => {
           {showAnswerLines && containerRef.current && (
             <>
               {(() => {
-                const rect = containerRef.current.getBoundingClientRect()
-                const spacing = calculateBlockSpacing(rect)
-                const blockTotalHeight = BLOCK_HEIGHT + spacing
+                const rect = containerRef.current.getBoundingClientRect();
+                const spacing = calculateBlockSpacing(rect);
+                const blockTotalHeight = BLOCK_HEIGHT + spacing;
+                
+                // Calculate the same connection points we use for drawing lines
+                const leftTop = getConnectionPoint('left', 'top', rect);
+                const leftBottom = getConnectionPoint('left', 'bottom', rect);
+                const rightTop = getConnectionPoint('right', 'top', rect);
+                const rightBottom = getConnectionPoint('right', 'bottom', rect);
+                
                 return (
                   <>
                     <line
                       className="answer-line"
-                      x1={rect.width * LEFT_STACK_POSITION - BLOCK_WIDTH/2 - LINE_EXTENSION}
-                      y1={rect.height / 2 - (leftCount * blockTotalHeight - spacing) / 2}
-                      x2={rect.width * RIGHT_STACK_POSITION - BLOCK_WIDTH/2}
-                      y2={rect.height / 2 - (rightCount * blockTotalHeight - spacing) / 2}
+                      x1={leftTop.x}
+                      y1={leftTop.y}
+                      x2={rightTop.x}
+                      y2={rightTop.y}
                     />
                     <line
                       className="answer-line"
-                      x1={rect.width * LEFT_STACK_POSITION - BLOCK_WIDTH/2 - LINE_EXTENSION}
-                      y1={rect.height / 2 + (leftCount * blockTotalHeight - spacing) / 2}
-                      x2={rect.width * RIGHT_STACK_POSITION - BLOCK_WIDTH/2}
-                      y2={rect.height / 2 + (rightCount * blockTotalHeight - spacing) / 2}
+                      x1={leftBottom.x}
+                      y1={leftBottom.y}
+                      x2={rightBottom.x}
+                      y2={rightBottom.y}
                     />
                   </>
-                )
+                );
               })()}
             </>
           )}
 
           {studentLines.map((line, index) => (
-            <motion.line
-              key={index}
-              className={`student-line ${showComparison ? (line.isCorrect ? 'correct-line' : 'incorrect-line') : ''}`}
-              x1={line.start.x}
-              y1={line.start.y}
-              x2={line.end.x}
-              y2={line.end.y}
-              initial={{ pathLength: 0 }}
-              animate={{ pathLength: 1 }}
-              transition={{ duration: 0.3 }}
+            <motion.path
+              key={`${line.type}-${index}`}
+              className={`student-line ${isShapeComplete ? 'completed' : ''}`}
+              initial={{
+                d: `M ${line.originalStart?.x || line.start.x} ${line.originalStart?.y || line.start.y} L ${line.originalEnd?.x || line.end.x} ${line.originalEnd?.y || line.end.y}`
+              }}
+              animate={{
+                d: `M ${line.start.x} ${line.start.y} L ${line.end.x} ${line.end.y}`
+              }}
+              transition={{ 
+                duration: 0.9,
+                ease: [0.4, 0, 0.2, 1]
+              }}
             />
           ))}
 
-          {currentLine && currentLine.start && currentLine.end && (
-            <line
+          {currentLine && (
+            <path
               className={`drawing-line ${currentLine.isDiscarding ? 'discarding' : ''}`}
-              x1={currentLine.start.x}
-              y1={currentLine.start.y}
-              x2={currentLine.end.x}
-              y2={currentLine.end.y}
+              d={`M ${currentLine.start.x} ${currentLine.start.y} L ${currentLine.end.x} ${currentLine.end.y}`}
             />
           )}
         </svg>
-
-        {showResult !== null && (
-          <motion.div
-            className={`result-indicator ${showResult ? 'correct' : 'incorrect'}`}
-            initial={{ opacity: 0, scale: 0.5 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ type: "spring", stiffness: 200, damping: 20 }}
-          >
-            {showResult ? '✓' : '✗'}
-          </motion.div>
-        )}
       </div>
       
       <div className="control-panel">
         <button 
           className={`mode-button ${showOperator ? 'active' : ''}`}
           onClick={() => setShowOperator(!showOperator)}
+          disabled={showComparison}
         >
           Show Operator
         </button>
         <button 
           className={`mode-button ${showAnswerLines ? 'active' : ''}`}
           onClick={() => setShowAnswerLines(!showAnswerLines)}
+          disabled={showComparison}
         >
           Show Answer
         </button>
@@ -593,12 +726,12 @@ export const ComparisonWidget: React.FC = () => {
         >
           Clear Lines
         </button>
-        {studentLines.length === 2 && (
+        {studentLines.length === 2 && !showComparison && (
           <button
             className="mode-button"
-            onClick={compareLines}
+            onClick={animateComparison}
           >
-            Check Answer
+            Show Comparison
           </button>
         )}
       </div>
