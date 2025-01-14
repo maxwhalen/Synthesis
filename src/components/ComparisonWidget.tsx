@@ -109,8 +109,11 @@ export const ComparisonWidget: React.FC = () => {
       blockLeftEdge - LINE_EXTENSION : 
       blockLeftEdge + BLOCK_WIDTH + LINE_EXTENSION
 
-    // Calculate y position
-    const y = type === 'top' ? stackTop : stackBottom
+    // Calculate y position with offset
+    const VERTICAL_OFFSET = 12 // Pixels to offset from the block
+    const y = type === 'top' ? 
+      stackTop - VERTICAL_OFFSET : 
+      stackBottom + VERTICAL_OFFSET
 
     return { x, y }
   }
