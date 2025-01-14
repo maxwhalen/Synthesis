@@ -50,6 +50,13 @@ body {
   transform: translateY(-0.1em);
 }
 
+/* Make operators white */
+.operator,
+[class*="operator"],
+[class*="Operator"] {
+  color: white !important;
+}
+
 /* Target numeric content */
 :is(p, span, div):not(pre *) {
   font-feature-settings: "tnum" 1;

@@ -557,53 +557,34 @@ export const ComparisonWidget: React.FC = () => {
               }}
             >
               {leftCount === rightCount ? (
-                // Equal sign - two parallel lines
-                <>
-                  <path
-                    d={`M 40 30 L 120 30`}
-                    stroke="#666"
-                    strokeWidth="8"
-                    strokeLinecap="round"
-                  />
-                  <path
-                    d={`M 40 90 L 120 90`}
-                    stroke="#666"
-                    strokeWidth="8"
-                    strokeLinecap="round"
-                  />
-                </>
+                // Equal sign - single path
+                <path
+                  d={`M 40 30 L 120 30 M 40 90 L 120 90`}
+                  stroke="white"
+                  strokeWidth="8"
+                  strokeLinecap="round"
+                  opacity="0.7"
+                />
               ) : leftCount > rightCount ? (
-                // Greater than - lines meet on right
-                <>
-                  <path
-                    d={`M 40 30 L 120 60`}
-                    stroke="#666"
-                    strokeWidth="8"
-                    strokeLinecap="round"
-                  />
-                  <path
-                    d={`M 40 90 L 120 60`}
-                    stroke="#666"
-                    strokeWidth="8"
-                    strokeLinecap="round"
-                  />
-                </>
+                // Greater than - single path
+                <path
+                  d={`M 40 30 L 120 60 L 40 90`}
+                  stroke="white"
+                  strokeWidth="8"
+                  strokeLinecap="round"
+                  opacity="0.7"
+                  fill="none"
+                />
               ) : (
-                // Less than - lines meet on left
-                <>
-                  <path
-                    d={`M 120 30 L 40 60`}
-                    stroke="#666"
-                    strokeWidth="8"
-                    strokeLinecap="round"
-                  />
-                  <path
-                    d={`M 120 90 L 40 60`}
-                    stroke="#666"
-                    strokeWidth="8"
-                    strokeLinecap="round"
-                  />
-                </>
+                // Less than - single path
+                <path
+                  d={`M 120 30 L 40 60 L 120 90`}
+                  stroke="white"
+                  strokeWidth="8"
+                  strokeLinecap="round"
+                  opacity="0.7"
+                  fill="none"
+                />
               )}
             </svg>
           </div>
