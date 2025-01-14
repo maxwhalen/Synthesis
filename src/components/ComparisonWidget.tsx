@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
 import { InteractionMode } from '../types/types'
+import Block3D from './Block3D'
 import './ComparisonWidget.css'
 
 interface Point {
@@ -79,7 +80,9 @@ export const ComparisonWidget: React.FC = () => {
     // Calculate x position - always use left edge of blocks
     const stackCenterX = rect.width * (stack === 'left' ? LEFT_STACK_POSITION : RIGHT_STACK_POSITION)
     const blockLeftEdge = stackCenterX - (BLOCK_WIDTH / 2)
-    const x = blockLeftEdge - (stack === 'left' ? LINE_EXTENSION : 0) // Only extend left side
+    const x = stack === 'left' ? 
+      blockLeftEdge - LINE_EXTENSION : 
+      blockLeftEdge + BLOCK_WIDTH + LINE_EXTENSION
 
     // Calculate y position
     const y = type === 'top' ? stackTop : stackBottom
@@ -405,43 +408,15 @@ export const ComparisonWidget: React.FC = () => {
 
   // Update the block rendering to include dynamic spacing
   const renderBlock = (stack: 'left' | 'right', index: number) => {
-    const spacing = containerRef.current ? calculateBlockSpacing(containerRef.current.getBoundingClientRect()) : BLOCK_MARGIN * 2
-    
     return (
-      <motion.div
-        key={index}
-        className="block"
-        initial={{ scale: 0 }}
-        animate={{ scale: 1 }}
-        exit={{ scale: 0 }}
-        transition={{ duration: 0.2 }}
-        style={{
-          marginTop: index === 0 ? 0 : spacing,
-          marginBottom: 0
-        }}
-        onClick={(e) => {
-          if (interactionMode === 'drawCompare') {
-            if (!isDrawing) {
-              handleMouseDown(e, stack, index)
-            } else {
-              handleMouseUp(e, stack, index)
-            }
-            e.stopPropagation()
-          }
-        }}
-        onMouseEnter={(e) => {
-          if (interactionMode === 'drawCompare' && isDrawing) {
-            const rect = containerRef.current?.getBoundingClientRect()
-            if (rect && currentLine) {
-              const type = index === 0 ? 'top' : index === (stack === 'left' ? leftCount - 1 : rightCount - 1) ? 'bottom' : null
-              if (type === currentLine.type && stack !== startBlock?.stack) {
-                const point = getConnectionPoint(stack, type, rect)
-                setCurrentLine(prev => prev ? {
-                  ...prev,
-                  end: point
-                } : null)
-              }
-            }
+      <Block3D
+        key={`${stack}-${index}`}
+        className={`block ${interactionMode === 'drawCompare' ? 'interactive' : ''}`}
+        onClick={(e: React.MouseEvent<HTMLDivElement>) => {
+          if (isDrawing) {
+            handleMouseUp(e as unknown as React.MouseEvent, stack, index)
+          } else {
+            handleMouseDown(e as unknown as React.MouseEvent, stack, index)
           }
         }}
       />

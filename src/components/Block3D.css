@@ -1,0 +1,69 @@
+.block3d-container {
+  perspective: 800px;
+  width: 45px;
+  height: 40px;
+  position: relative;
+  margin: 4px 0;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+
+.block3d-container:hover {
+  transform: translateY(-2px);
+}
+
+.block3d {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  transform-style: preserve-3d;
+  transform: rotateX(-15deg) rotateY(15deg);
+  transition: transform 0.3s ease;
+}
+
+.block3d:hover {
+  transform: rotateX(-20deg) rotateY(20deg);
+}
+
+.face {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  background: var(--block-color);
+  box-shadow: 0 0 15px rgba(76, 196, 241, 0.3);
+  backdrop-filter: blur(5px);
+}
+
+.face--front {
+  transform: translateZ(20px);
+  background: linear-gradient(135deg, var(--block-color) 0%, var(--block-glow) 100%);
+  border: 1px solid var(--block-glow);
+  border-radius: 0px;
+}
+
+.face--back {
+  transform: rotateY(180deg) translateZ(25px);
+  background: linear-gradient(135deg, var(--block-glow) 0%, color-mix(in srgb, var(--block-color) 70%, black) 100%);
+  border: 1px solid color-mix(in srgb, var(--block-color) 70%, black);
+  border-radius: 4px;
+}
+
+.face--top {
+  height: 40px;
+  transform: rotateX(90deg) translateZ(20px) translateY(-1px);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--block-glow) 70%, black), color-mix(in srgb, var(--block-color) 70%, black));
+  border: 1px solid color-mix(in srgb, var(--block-color) 70%, black);
+}
+
+.face--bottom {
+  height: 40px;
+  transform: rotateX(-90deg) translateZ(18px);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--block-glow) 50%, black), color-mix(in srgb, var(--block-color) 50%, black));
+  border: 1px solid color-mix(in srgb, var(--block-color) 60%, black);
+} 
