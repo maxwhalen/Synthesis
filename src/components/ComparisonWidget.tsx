@@ -178,14 +178,27 @@ export const ComparisonWidget: React.FC = () => {
   const handleMouseUp = (e: React.MouseEvent, stack?: 'left' | 'right', index?: number) => {
     if (!isDrawing || !currentLine || !startBlock || !containerRef.current) {
       console.log('Invalid mouse up state:', { isDrawing, currentLine, startBlock })
-      setCurrentLine(null)
       setIsDrawing(false)
+      setCurrentLine(null)
       setStartBlock(null)
       return
     }
 
     const rect = containerRef.current.getBoundingClientRect()
-    console.log('Mouse up on:', { stack, index })
+    const stackSize = stack === 'left' ? leftCount : rightCount
+
+    // Only allow connections to top or bottom blocks
+    const type = index === 0 ? 'top' : index === stackSize - 1 ? 'bottom' : null
+    if (!type || type !== startBlock.type || stack === startBlock.stack) {
+      console.log('Invalid connection:', { type, startBlock, stack, index })
+      setCurrentLine(prev => prev ? { ...prev, isDiscarding: true } : null)
+      setTimeout(() => {
+        setCurrentLine(null)
+        setIsDrawing(false)
+        setStartBlock(null)
+      }, 300)
+      return
+    }
 
     const animateLineFalling = () => {
       console.log('Animating line falling')

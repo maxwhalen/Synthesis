@@ -10,32 +10,29 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
   widgetState,
   setWidgetState
 }) => {
-  const toggleComparator = () => {
-    setWidgetState(prev => ({ ...prev, showComparator: !prev.showComparator }))
+  const toggleOperator = () => {
+    setWidgetState(prev => ({ ...prev, showOperator: !prev.showOperator }))
   }
 
-  const toggleAnswerKey = () => {
+  const toggleAnswerLines = () => {
     setWidgetState(prev => ({
       ...prev,
-      comparisonLines: {
-        ...prev.comparisonLines,
-        isAutomatic: !prev.comparisonLines.isAutomatic
-      }
+      showAnswerLines: !prev.showAnswerLines
     }))
   }
 
   return (
     <div className="control-panel">
       <button 
-        className={`toggle-button ${widgetState.showComparator ? 'active' : ''}`}
-        onClick={toggleComparator}
+        className={`toggle-button ${widgetState.showOperator ? 'active' : ''}`}
+        onClick={toggleOperator}
       >
-        Show Operand
+        Show Operator
       </button>
 
       <button 
-        className={`toggle-button ${widgetState.comparisonLines.isAutomatic ? 'active' : ''}`}
-        onClick={toggleAnswerKey}
+        className={`toggle-button ${widgetState.showAnswerLines ? 'active' : ''}`}
+        onClick={toggleAnswerLines}
       >
         Show Answer
       </button>
