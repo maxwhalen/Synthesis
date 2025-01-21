@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, useMemo, memo } from 'react'
 import { motion } from 'framer-motion'
 import { InteractionMode } from '../types/types'
 import Block3D from './Block3D'
@@ -24,6 +24,53 @@ interface StartBlock {
   type: 'top' | 'bottom'
   point: Point
 }
+
+// Memoized student line component
+const StudentLine = memo(({ line, isShapeComplete }: { line: Line; isShapeComplete: boolean }) => (
+  <motion.path
+    className={`student-line ${isShapeComplete ? 'completed' : ''}`}
+    initial={{
+      d: `M ${line.originalStart?.x || line.start.x} ${line.originalStart?.y || line.start.y} L ${line.originalEnd?.x || line.end.x} ${line.originalEnd?.y || line.end.y}`
+    }}
+    animate={{
+      d: `M ${line.start.x} ${line.start.y} L ${line.end.x} ${line.end.y}`
+    }}
+    transition={{ 
+      duration: 0.9,
+      ease: [0.4, 0, 0.2, 1]
+    }}
+  />
+))
+
+// Memoized answer lines component
+const AnswerLines = memo(({ rect, getConnectionPoint }: { 
+  rect: DOMRect; 
+  getConnectionPoint: (stack: 'left' | 'right', type: 'top' | 'bottom', rect: DOMRect) => Point 
+}) => {
+  const leftTop = getConnectionPoint('left', 'top', rect)
+  const leftBottom = getConnectionPoint('left', 'bottom', rect)
+  const rightTop = getConnectionPoint('right', 'top', rect)
+  const rightBottom = getConnectionPoint('right', 'bottom', rect)
+  
+  return (
+    <>
+      <line
+        className="answer-line"
+        x1={leftTop.x}
+        y1={leftTop.y}
+        x2={rightTop.x}
+        y2={rightTop.y}
+      />
+      <line
+        className="answer-line"
+        x1={leftBottom.x}
+        y1={leftBottom.y}
+        x2={rightBottom.x}
+        y2={rightBottom.y}
+      />
+    </>
+  )
+})
 
 export const ComparisonWidget: React.FC = () => {
   const [leftCount, setLeftCount] = useState(2)
@@ -491,6 +538,11 @@ export const ComparisonWidget: React.FC = () => {
     )
   }
 
+  // Memoize the current rect dimensions
+  const currentRect = useMemo(() => {
+    return containerRef.current?.getBoundingClientRect() || null
+  }, [containerRef.current])
+
   return (
     <div className="comparison-widget">
       <div className="mode-controls">
@@ -669,53 +721,15 @@ export const ComparisonWidget: React.FC = () => {
             pointerEvents: 'none'
           }}
         >
-          {showAnswerLines && containerRef.current && (
-            <>
-              {(() => {
-                const rect = containerRef.current.getBoundingClientRect();
-                
-                // Calculate the same connection points we use for drawing lines
-                const leftTop = getConnectionPoint('left', 'top', rect);
-                const leftBottom = getConnectionPoint('left', 'bottom', rect);
-                const rightTop = getConnectionPoint('right', 'top', rect);
-                const rightBottom = getConnectionPoint('right', 'bottom', rect);
-                
-                return (
-                  <>
-                    <line
-                      className="answer-line"
-                      x1={leftTop.x}
-                      y1={leftTop.y}
-                      x2={rightTop.x}
-                      y2={rightTop.y}
-                    />
-                    <line
-                      className="answer-line"
-                      x1={leftBottom.x}
-                      y1={leftBottom.y}
-                      x2={rightBottom.x}
-                      y2={rightBottom.y}
-                    />
-                  </>
-                );
-              })()}
-            </>
+          {showAnswerLines && currentRect && (
+            <AnswerLines rect={currentRect} getConnectionPoint={getConnectionPoint} />
           )}
 
           {studentLines.map((line, index) => (
-            <motion.path
+            <StudentLine 
               key={`${line.type}-${index}`}
-              className={`student-line ${isShapeComplete ? 'completed' : ''}`}
-              initial={{
-                d: `M ${line.originalStart?.x || line.start.x} ${line.originalStart?.y || line.start.y} L ${line.originalEnd?.x || line.end.x} ${line.originalEnd?.y || line.end.y}`
-              }}
-              animate={{
-                d: `M ${line.start.x} ${line.start.y} L ${line.end.x} ${line.end.y}`
-              }}
-              transition={{ 
-                duration: 0.9,
-                ease: [0.4, 0, 0.2, 1]
-              }}
+              line={line}
+              isShapeComplete={isShapeComplete}
             />
           ))}
 
