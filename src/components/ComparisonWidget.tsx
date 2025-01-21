@@ -1,8 +1,15 @@
-import React, { useState, useEffect, useRef, useMemo, memo } from 'react'
+import React, { useState, useEffect, useRef, useMemo, memo, useCallback } from 'react'
 import { motion } from 'framer-motion'
 import { InteractionMode } from '../types/types'
 import Block3D from './Block3D'
 import './ComparisonWidget.css'
+
+// CSS constants from ComparisonWidget.css
+const BLOCK_WIDTH = 70 // .block { width: 70px }
+const BLOCK_HEIGHT = 40 // .block { height: 40px }
+const LEFT_STACK_POSITION = 0.35 // .block-stack.left { left: 35% }
+const RIGHT_STACK_POSITION = 0.65 // .block-stack.right { left: 65% }
+const LINE_EXTENSION = 20 // How far the line extends horizontally
 
 interface Point {
   x: number
@@ -23,6 +30,36 @@ interface StartBlock {
   stack: 'left' | 'right'
   type: 'top' | 'bottom'
   point: Point
+}
+
+// Calculate dynamic spacing based on container height and larger stack
+const calculateBlockSpacing = (rect: DOMRect, leftCount: number, rightCount: number): { spacing: number; scale: number } => {
+  const maxStackSize = Math.max(leftCount, rightCount)
+  const totalPadding = 80 // Reduced padding
+  const minSpacing = 2 // Reduced minimum spacing
+  const maxSpacing = 12 // Reduced maximum spacing
+  
+  // Calculate total height needed for blocks
+  const totalBlockHeight = maxStackSize * BLOCK_HEIGHT
+  const availableHeight = rect.height - totalPadding
+  
+  // Calculate scale if blocks would overflow, with a more gradual scale reduction
+  let scale = 1
+  const minHeightNeeded = totalBlockHeight + (maxStackSize - 1) * minSpacing
+  if (minHeightNeeded > availableHeight) {
+    // More aggressive scale reduction with a minimum scale of 0.6
+    scale = Math.max(0.6, availableHeight / minHeightNeeded)
+  }
+  
+  // Calculate optimal spacing with a preference for consistent spacing
+  const optimalSpacing = scale === 1 
+    ? Math.min(maxSpacing, (availableHeight - totalBlockHeight) / (maxStackSize + 1))
+    : minSpacing // Use minimum spacing when scaled
+  
+  return {
+    spacing: Math.max(minSpacing, Math.min(maxSpacing, optimalSpacing)),
+    scale
+  }
 }
 
 // Memoized student line component
@@ -72,6 +109,79 @@ const AnswerLines = memo(({ rect, getConnectionPoint }: {
   )
 })
 
+// Memoized Block component
+const MemoizedBlock = memo(({ 
+  stack, 
+  index, 
+  scale, 
+  spacing, 
+  verticalOffset, 
+  stackSize, 
+  isInteractive,
+  onBlockClick 
+}: { 
+  stack: 'left' | 'right'
+  index: number
+  scale: number
+  spacing: number
+  verticalOffset: number
+  stackSize: number
+  isInteractive: boolean
+  onBlockClick: (e: React.MouseEvent<HTMLDivElement>) => void
+}) => (
+  <Block3D
+    key={`${stack}-${index}`}
+    className={`block ${isInteractive ? 'interactive' : ''}`}
+    style={{
+      transform: `scale(${scale})`,
+      marginTop: index === 0 ? verticalOffset / scale : spacing,
+      marginBottom: index === stackSize - 1 ? verticalOffset / scale : 0
+    }}
+    onClick={onBlockClick}
+  />
+))
+
+// Memoized BlockStack component
+const BlockStack = memo(({ 
+  stack,
+  count,
+  containerRect,
+  isInteractive,
+  onBlockClick,
+  leftCount,
+  rightCount
+}: { 
+  stack: 'left' | 'right'
+  count: number
+  containerRect: DOMRect | null
+  isInteractive: boolean
+  onBlockClick: (e: React.MouseEvent<HTMLDivElement>, stack: 'left' | 'right', index: number) => void
+  leftCount: number
+  rightCount: number
+}) => {
+  const { spacing, scale } = containerRect ? calculateBlockSpacing(containerRect, leftCount, rightCount) : { spacing: 0, scale: 1 }
+  const stackHeight = count * BLOCK_HEIGHT + (count - 1) * spacing
+  const verticalOffset = containerRect ? (containerRect.height - stackHeight * scale) / 2 : 0
+
+  return (
+    <div className="blocks-container">
+      {Array.from({ length: count }).map((_, i) => (
+        <MemoizedBlock
+          key={`${stack}-${i}`}
+          stack={stack}
+          index={i}
+          scale={scale}
+          spacing={spacing}
+          verticalOffset={verticalOffset}
+          stackSize={count}
+          isInteractive={isInteractive}
+          onBlockClick={(e) => onBlockClick(e, stack, i)}
+        />
+      ))}
+    </div>
+  )
+})
+
 export const ComparisonWidget: React.FC = () => {
   const [leftCount, setLeftCount] = useState(2)
   const [rightCount, setRightCount] = useState(4)
@@ -107,46 +217,9 @@ export const ComparisonWidget: React.FC = () => {
     setStudentLines([])
   }, [])
 
-  // CSS constants from ComparisonWidget.css
-  const BLOCK_WIDTH = 70 // .block { width: 70px }
-  const BLOCK_HEIGHT = 40 // .block { height: 40px }
-  const LEFT_STACK_POSITION = 0.35 // .block-stack.left { left: 35% }
-  const RIGHT_STACK_POSITION = 0.65 // .block-stack.right { left: 65% }
-  const LINE_EXTENSION = 20 // How far the line extends horizontally
-
-  // Calculate dynamic spacing based on container height and larger stack
-  const calculateBlockSpacing = (rect: DOMRect): { spacing: number; scale: number } => {
-    const maxStackSize = Math.max(leftCount, rightCount)
-    const totalPadding = 80 // Reduced padding
-    const minSpacing = 2 // Reduced minimum spacing
-    const maxSpacing = 12 // Reduced maximum spacing
-    
-    // Calculate total height needed for blocks
-    const totalBlockHeight = maxStackSize * BLOCK_HEIGHT
-    const availableHeight = rect.height - totalPadding
-    
-    // Calculate scale if blocks would overflow, with a more gradual scale reduction
-    let scale = 1
-    const minHeightNeeded = totalBlockHeight + (maxStackSize - 1) * minSpacing
-    if (minHeightNeeded > availableHeight) {
-      // More aggressive scale reduction with a minimum scale of 0.6
-      scale = Math.max(0.6, availableHeight / minHeightNeeded)
-    }
-    
-    // Calculate optimal spacing with a preference for consistent spacing
-    const optimalSpacing = scale === 1 
-      ? Math.min(maxSpacing, (availableHeight - totalBlockHeight) / (maxStackSize + 1))
-      : minSpacing // Use minimum spacing when scaled
-    
-    return {
-      spacing: Math.max(minSpacing, Math.min(maxSpacing, optimalSpacing)),
-      scale
-    }
-  }
-
   // Helper function to get connection points for a block
   const getConnectionPoint = (stack: 'left' | 'right', type: 'top' | 'bottom', rect: DOMRect): Point => {
-    const spacing = calculateBlockSpacing(rect)
+    const spacing = calculateBlockSpacing(rect, leftCount, rightCount)
     const blockTotalHeight = BLOCK_HEIGHT + spacing.spacing
     
     // Calculate stack positions using the dynamic spacing
@@ -508,35 +581,14 @@ export const ComparisonWidget: React.FC = () => {
     }
   }
 
-  // Update the block rendering to include dynamic spacing and scaling
-  const renderBlock = (stack: 'left' | 'right', index: number) => {
-    if (!containerRef.current) return null
-    
-    const rect = containerRef.current.getBoundingClientRect()
-    const { spacing, scale } = calculateBlockSpacing(rect)
-    const stackSize = stack === 'left' ? leftCount : rightCount
-    const stackHeight = stackSize * BLOCK_HEIGHT + (stackSize - 1) * spacing
-    const verticalOffset = (rect.height - stackHeight * scale) / 2
-    
-    return (
-      <Block3D
-        key={`${stack}-${index}`}
-        className={`block ${interactionMode === 'drawCompare' ? 'interactive' : ''}`}
-        style={{
-          transform: `scale(${scale})`,
-          marginTop: index === 0 ? verticalOffset / scale : spacing,
-          marginBottom: index === stackSize - 1 ? verticalOffset / scale : 0
-        }}
-        onClick={(e: React.MouseEvent<HTMLDivElement>) => {
-          if (isDrawing) {
-            handleMouseUp(e as unknown as React.MouseEvent, stack, index)
-          } else {
-            handleMouseDown(e as unknown as React.MouseEvent, stack, index)
-          }
-        }}
-      />
-    )
-  }
+  // Memoize the block click handler
+  const handleBlockClick = useCallback((e: React.MouseEvent<HTMLDivElement>, stack: 'left' | 'right', index: number) => {
+    if (isDrawing) {
+      handleMouseUp(e as unknown as React.MouseEvent, stack, index)
+    } else {
+      handleMouseDown(e as unknown as React.MouseEvent, stack, index)
+    }
+  }, [isDrawing])
 
   // Memoize the current rect dimensions
   const currentRect = useMemo(() => {
@@ -616,9 +668,15 @@ export const ComparisonWidget: React.FC = () => {
               ▼
             </button>
           </div>
-          <div className="blocks-container">
-            {Array.from({ length: leftCount }).map((_, i) => renderBlock('left', i))}
-          </div>
+          <BlockStack
+            stack="left"
+            count={leftCount}
+            containerRect={currentRect}
+            isInteractive={interactionMode === 'drawCompare'}
+            onBlockClick={handleBlockClick}
+            leftCount={leftCount}
+            rightCount={rightCount}
+          />
         </div>
         
         {showOperator && (
@@ -669,9 +727,15 @@ export const ComparisonWidget: React.FC = () => {
         )}
         
         <div className="block-stack right">
-          <div className="blocks-container">
-            {Array.from({ length: rightCount }).map((_, i) => renderBlock('right', i))}
-          </div>
+          <BlockStack
+            stack="right"
+            count={rightCount}
+            containerRect={currentRect}
+            isInteractive={interactionMode === 'drawCompare'}
+            onBlockClick={handleBlockClick}
+            leftCount={leftCount}
+            rightCount={rightCount}
+          />
           <div className="stack-controls">
             <button 
               className="stack-button"
