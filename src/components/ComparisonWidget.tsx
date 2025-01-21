@@ -42,6 +42,11 @@ export const ComparisonWidget: React.FC = () => {
   const [leftTempValue, setLeftTempValue] = useState(leftCount.toString())
   const [rightTempValue, setRightTempValue] = useState(rightCount.toString())
   const [isShapeComplete, setIsShapeComplete] = useState(false)
+  const animationFrameRef = useRef<number>()
+  const lastUpdateTimeRef = useRef<number>(0)
+  const currentLineRef = useRef<Line | null>(null)
+  const pathRef = useRef<SVGPathElement>(null)
+  const isDrawingRef = useRef(false)
 
   // Initialize blocks and state on component mount
   useEffect(() => {
@@ -123,6 +128,37 @@ export const ComparisonWidget: React.FC = () => {
     return studentLines.some(line => line.type === type)
   }
 
+  const updateLinePosition = (e: React.MouseEvent) => {
+    if (!isDrawingRef.current || !currentLineRef.current || !containerRef.current || !pathRef.current) return
+
+    const rect = containerRef.current.getBoundingClientRect()
+    const newEnd = { x: e.clientX - rect.left, y: e.clientY - rect.top }
+    
+    // Update the ref
+    currentLineRef.current = {
+      ...currentLineRef.current,
+      end: newEnd
+    }
+
+    // Directly update the SVG path without triggering a re-render
+    pathRef.current.setAttribute(
+      'd',
+      `M ${currentLineRef.current.start.x} ${currentLineRef.current.start.y} L ${newEnd.x} ${newEnd.y}`
+    )
+  }
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    updateLinePosition(e)
+  }
+
+  useEffect(() => {
+    return () => {
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current)
+      }
+    }
+  }, [])
+
   const handleMouseDown = (e: React.MouseEvent, stack: 'left' | 'right', index: number) => {
     if (interactionMode !== 'drawCompare') return
     e.preventDefault()
@@ -130,20 +166,12 @@ export const ComparisonWidget: React.FC = () => {
     const rect = containerRef.current?.getBoundingClientRect()
     if (!rect) return
 
-    // Determine if this is a top or bottom block
     const type = index === 0 ? 'top' : index === (stack === 'left' ? leftCount - 1 : rightCount - 1) ? 'bottom' : null
-    console.log('Mouse down on block:', { stack, index, type })
-    
-    if (!type) return // Only allow connections from top or bottom blocks
+    if (!type) return
 
-    // Check if a line of this type already exists
-    if (hasLineOfType(type)) {
-      console.log('Line of type already exists:', type)
-      return
-    }
+    if (hasLineOfType(type)) return
 
     const point = getConnectionPoint(stack, type, rect)
-    console.log('Starting point:', point)
     
     setStartBlock({
       stack,
@@ -157,26 +185,17 @@ export const ComparisonWidget: React.FC = () => {
       type: type as 'top' | 'bottom',
       isDiscarding: false
     }
-    console.log('Creating new line:', newLine)
+
+    currentLineRef.current = newLine
+    isDrawingRef.current = true
     setCurrentLine(newLine)
     setIsDrawing(true)
   }
 
-  const handleMouseMove = (e: React.MouseEvent) => {
-    if (!isDrawing || !currentLine || !containerRef.current) return
-
-    const rect = containerRef.current.getBoundingClientRect()
-    const newEnd = { x: e.clientX - rect.left, y: e.clientY - rect.top }
-    
-    // Only update if the position has changed significantly
-    if (Math.abs(newEnd.x - currentLine.end.x) > 1 || Math.abs(newEnd.y - currentLine.end.y) > 1) {
-      setCurrentLine(prev => prev ? { ...prev, end: newEnd } : null)
-    }
-  }
-
   const handleMouseUp = (_e: React.MouseEvent, stack?: 'left' | 'right', index?: number) => {
-    if (!isDrawing || !currentLine || !startBlock || !containerRef.current) {
-      console.log('Invalid mouse up state:', { isDrawing, currentLine, startBlock })
+    if (!isDrawingRef.current || !currentLineRef.current || !startBlock || !containerRef.current) {
+      isDrawingRef.current = false
+      currentLineRef.current = null
       setIsDrawing(false)
       setCurrentLine(null)
       setStartBlock(null)
@@ -251,6 +270,8 @@ export const ComparisonWidget: React.FC = () => {
       setCurrentLine(null)
       setIsDrawing(false)
       setStartBlock(null)
+      isDrawingRef.current = false
+      currentLineRef.current = null
     })
   }
 
@@ -700,6 +721,7 @@ export const ComparisonWidget: React.FC = () => {
 
           {currentLine && (
             <path
+              ref={pathRef}
               className={`drawing-line ${currentLine.isDiscarding ? 'discarding' : ''}`}
               d={`M ${currentLine.start.x} ${currentLine.start.y} L ${currentLine.end.x} ${currentLine.end.y}`}
             />
